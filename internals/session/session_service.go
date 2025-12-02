@@ -5,13 +5,28 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
+	//"github.com/suhas-developer07/GuessVibe-Server/internals/RedisSession_model"
 )
 
+type SessionState struct {
+    SessionID       string             `json:"sessionId"`
+    UserID          string             `json:"userId"`
+    QuestionCount   int                `json:"questionCount"`
+    History         []QA               `json:"history"`
+    CandidateScores map[string]float64 `json:"candidateScores"`
+    State           string             `json:"state"`  
+}
+
+
+type QA struct {
+    Question string `json:"question"`
+    Answer   string `json:"answer"`
+}
+
 type SessionRepository interface {
-	SaveSession(ctx context.Context, state *models.SessionState) error
-	GetSession(ctx context.Context, sessionID string) (*models.SessionState, error)
-	UpdateSession(ctx context.Context, state *models.SessionState) error
+	SaveSession(ctx context.Context, state *SessionState) error
+	GetSession(ctx context.Context, sessionID string) (*SessionState, error)
+	UpdateSession(ctx context.Context, state *SessionState) error
 	DeleteSession(ctx context.Context, sessionID string) error
 }
 
@@ -23,16 +38,15 @@ func NewService(repo SessionRepository) *Service {
 	return &Service{Repo: repo}
 }
 
-// CreateSession generates a new session with UUID and default values
-func (s *Service) CreateSession(ctx context.Context, userID string) (*models.SessionState, error) {
+func (s *Service) CreateSession(ctx context.Context, userID string) (*SessionState, error) {
 
 	sessionID := uuid.New().String()
 
-	state := &models.SessionState{
+	state := &SessionState{
 		SessionID:       sessionID,
 		UserID:          userID,
 		QuestionCount:   0,
-		History:         []models.QA{},
+		History:         []QA{},
 		CandidateScores: make(map[string]float64),
 		State:           "ASKING",
 	}

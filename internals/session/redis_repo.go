@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
-	models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
+	//models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
 )
 
 type RedisRepo struct {
@@ -17,23 +17,23 @@ func NewRedisRepo(client *redis.Client) *RedisRepo {
 	return &RedisRepo{Client: client}
 }
 
-func (r *RedisRepo) SaveSession(ctx context.Context, state *models.SessionState) error {
+func (r *RedisRepo) SaveSession(ctx context.Context, state *SessionState) error {
 	data, _ := json.Marshal(state)
 	return r.Client.Set(ctx, "session:"+state.SessionID, data, 0).Err()
 }
 
-func (r *RedisRepo) GetSession(ctx context.Context, sessionID string) (*models.SessionState, error) {
+func (r *RedisRepo) GetSession(ctx context.Context, sessionID string) (*SessionState, error) {
 	data, err := r.Client.Get(ctx, "session:"+sessionID).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("session not found")
 	}
 
-	var state models.SessionState
+	var state SessionState
 	json.Unmarshal(data, &state)
 	return &state, nil
 }
 
-func (r *RedisRepo) UpdateSession(ctx context.Context, state *models.SessionState) error {
+func (r *RedisRepo) UpdateSession(ctx context.Context, state *SessionState) error {
 	data, _ := json.Marshal(state)
 	return r.Client.Set(ctx, "session:"+state.SessionID, data, 0).Err()
 }

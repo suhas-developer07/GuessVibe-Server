@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"log"
 
-	models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
+	pb "github.com/suhas-developer07/GuessVibe-Server/generated/proto"
+	//models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
 	wsmodels "github.com/suhas-developer07/GuessVibe-Server/internals/models/Websocket_model"
 	"github.com/suhas-developer07/GuessVibe-Server/internals/session"
 )
@@ -50,76 +51,120 @@ func SendQuestion(c *Client, sessionID string, question string, num int) {
 	c.Send <- b
 }
 
+func SendFinalGuess(c *Client, guess *pb.LLMGuessResponse) {
+	resp := wsmodels.ServerMessage{
+		Type:         "final_guess",
+		Guess:        guess.Guess,
+		Confidence:   guess.Confidence,
+		Alternatives: guess.Alternatives,
+		SessionID:    c.SessionID,
+	}
+
+	b, _ := json.Marshal(resp)
+	c.Send <- b
+}
+
 func HandleInit(c *Client, msg wsmodels.ClientMessage) {
-    ctx := context.Background()
+	ctx := context.Background()
 
-    // 1. Create new session
-    state, err := sessionService.CreateSession(ctx, msg.UserID)
-    if err != nil {
-        log.Println("session create failed:", err)
-        return
-    }
+	// 1. Create new session in Redis
+	state, err := sessionService.CreateSession(ctx, msg.UserID)
+	if err != nil {
+		log.Println("session create failed:", err)
+		return
+	}
 
-    // TEMP FIRST QUESTION
-    firstQuestion := "Is it alive?"
+	// 2. Convert to proto for gRPC call
+	protoState := state.ToProto()
 
-    // ❗️ IMPORTANT: Add first question to history
-    state.History = append(state.History, models.QA{
-        Question: firstQuestion,
-        Answer:   "",
-    })
+	// 3. Call Python LLM for FIRST QUESTION
+	firstQuestion, err := c.LLM.GenerateFirstQuestion(protoState)
+	if err != nil {
+		log.Println("LLM error:", err)
+		return
+	}
 
-    state.QuestionCount = 1
+	// 4. Update local game state
+	state.QuestionCount = 1
+	state.History = append(state.History, session.QA{
+		Question: firstQuestion,
+		Answer:   "",
+	})
 
-    // Save back to Redis
-    if err := sessionService.Repo.UpdateSession(ctx, state); err != nil {
-        log.Println("failed to update session:", err)
-    }
+	// 5. Save back to Redis
+	if err := sessionService.Repo.UpdateSession(ctx, state); err != nil {
+		log.Println("redis update failed:", err)
+	}
 
-    // Attach to client
-    c.SessionID = state.SessionID
-    c.UserID = state.UserID
+	// 6. Attach session to WS client
+	c.SessionID = state.SessionID
+	c.UserID = state.UserID
 
-    // Send first question
-    SendQuestion(c, state.SessionID, firstQuestion, state.QuestionCount)
+	// 7. Send question to frontend
+	SendQuestion(c, state.SessionID, firstQuestion, state.QuestionCount)
 }
 func HandleAnswer(c *Client, msg wsmodels.ClientMessage) {
-    ctx := context.Background()
+	ctx := context.Background()
 
-    // 1. Load session
-    state, err := sessionService.Repo.GetSession(ctx, msg.SessionID)
-    if err != nil {
-        log.Println("session not found:", err)
-        return
-    }
+	// 1. Load session
+	state, err := sessionService.Repo.GetSession(ctx, msg.SessionID)
+	if err != nil {
+		log.Println("session not found:", err)
+		return
+	}
 
-    // SAFETY CHECK — history must not be empty
-    if len(state.History) == 0 {
-        log.Println("ERROR: history empty, cannot append answer")
-        return
-    }
+	if len(state.History) == 0 {
+		log.Println("ERROR: No previous question to attach answer to")
+		return
+	}
 
-    // 2. Update last Q with answer
-    state.History[len(state.History)-1].Answer = msg.Answer
+	// 2. Update last question with user answer
+	state.History[len(state.History)-1].Answer = msg.Answer
 
-    // 3. Increase question count
-    state.QuestionCount++
+	// 3. DECIDE: next question OR final guess?
+	if state.QuestionCount >= 15 {
+		// ------------ FINAL GUESS ------------ //
 
-    // ❗️Create a mock next question
-    nextQuestion := "Is it bigger than a football?"
+		protoState := state.ToProto()
+		guessResp, err := c.LLM.GenerateFinalGuess(protoState)
+		if err != nil {
+			log.Println("final guess error:", err)
+			return
+		}
 
-    // 4. Append new question placeholder to history
-    state.History = append(state.History, models.QA{
-        Question: nextQuestion,
-        Answer:   "",
-    })
+		// Send guess to frontend
+		SendFinalGuess(c, guessResp)
 
-    // Save back to Redis
-    if err := sessionService.Repo.UpdateSession(ctx, state); err != nil {
-        log.Println("failed to update session:", err)
-        return
-    }
+		// Close session in Redis
+		_ = sessionService.Repo.DeleteSession(ctx, state.SessionID)
+		return
+	}
 
-    // 5. Send next question
-    SendQuestion(c, state.SessionID, nextQuestion, state.QuestionCount)
+	// ------------ NEXT QUESTION ------------ //
+
+	// Increase count BEFORE calling LLM
+	state.QuestionCount++
+
+	protoState := state.ToProto()
+
+	nextQuestion, err := c.LLM.GenerateNextQuestion(protoState)
+	if err != nil {
+		log.Println("LLM next question error:", err)
+		return
+	}
+
+	// Add new Q to history
+	state.History = append(state.History, session.QA{
+		Question: nextQuestion,
+		Answer:   "",
+	})
+
+	// Save updated session
+	if err := sessionService.Repo.UpdateSession(ctx, state); err != nil {
+		log.Println("redis update failed:", err)
+		return
+	}
+
+	// Send next question
+	SendQuestion(c, state.SessionID, nextQuestion, state.QuestionCount)
 }

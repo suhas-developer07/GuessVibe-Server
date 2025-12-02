@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+	grpcclient "github.com/suhas-developer07/GuessVibe-Server/internals/grpc_client"
 )
 
 var upgrader = websocket.Upgrader{
@@ -14,7 +15,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func WebsocketHandler(hub *Hub) echo.HandlerFunc {
+func WebsocketHandler(hub *Hub,llm *grpcclient.LLMClient) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 		if err != nil {
@@ -27,6 +28,7 @@ func WebsocketHandler(hub *Hub) echo.HandlerFunc {
 			Hub:  hub,
 			Conn: conn,
 			Send: make(chan []byte, 256),
+			LLM:llm,
 		}
 
 		client.Hub.Register <- client

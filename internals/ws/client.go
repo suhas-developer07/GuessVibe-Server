@@ -4,13 +4,16 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	grpcclient "github.com/suhas-developer07/GuessVibe-Server/internals/grpc_client"
 )
+
 type Client struct {
-    Hub       *Hub
-    Conn      *websocket.Conn
-    Send      chan []byte
-    SessionID string
-    UserID    string
+	Hub       *Hub
+	Conn      *websocket.Conn
+	Send      chan []byte
+	LLM       *grpcclient.LLMClient
+	SessionID string
+	UserID    string
 }
 
 // ReadPump handles incoming messages from frontend

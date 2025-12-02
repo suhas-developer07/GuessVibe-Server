@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package llm;
+
+option go_package = "github.com/suhas-developer07/GuessVibe-Server/generated/proto/llm";
+
+message QA {
+  string question = 1;
+  string answer = 2;
+}
+
+message SessionState {
+  string sessionId = 1;
+  int32 questionCount = 2;
+  repeated QA history = 3;
+  map<string, float> candidateScores = 4;
+}
+
+message LLMQuestionResponse {
+  string question = 1;
+}
+
+message LLMGuessResponse {
+  string guess = 1;
+  float confidence = 2;
+  repeated string alternatives = 3;
+}
+
+service LLMService {
+  rpc GenerateFirstQuestion (SessionState) returns (LLMQuestionResponse);
+  rpc GenerateNextQuestion  (SessionState) returns (LLMQuestionResponse);
+  rpc GenerateFinalGuess    (SessionState) returns (LLMGuessResponse);
+}
