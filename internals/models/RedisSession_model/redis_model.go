@@ -1,4 +1,4 @@
-package session
+package sessionModel
 
 type SessionState struct {
     SessionID       string             `json:"sessionId"`

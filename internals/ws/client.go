@@ -5,11 +5,12 @@ import (
 
 	"github.com/gorilla/websocket"
 )
-
 type Client struct {
-	Hub  *Hub
-	Conn *websocket.Conn
-	Send chan []byte 
+    Hub       *Hub
+    Conn      *websocket.Conn
+    Send      chan []byte
+    SessionID string
+    UserID    string
 }
 
 // ReadPump handles incoming messages from frontend
