@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -19,6 +20,8 @@ func WebsocketHandler(hub *Hub) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
+
+		log.Println("Client get coneected")
 
 		client := &Client{
 			Hub:  hub,
