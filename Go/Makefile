@@ -22,7 +22,7 @@ proto:
 # ------------------------------
 run:
 	@echo "🏃 Running Go WebSocket server..."
-	@go run ./cmd/main.go
+	@go run ./cmd
 
 # ------------------------------
 # Go Module Maintenance
@@ -36,7 +36,7 @@ tidy:
 # ------------------------------
 build:
 	@echo "🔨 Building binary..."
-	@go build -o bin/guessvibe ./cmd/main.go
+	@go build -o bin/guessvibe ./cmd
 	@echo "✔ Build completed! Binary: bin/guessvibe"
 
 # ------------------------------

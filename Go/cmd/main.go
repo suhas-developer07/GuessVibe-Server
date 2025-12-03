@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"os"
+
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	grpcclient "github.com/suhas-developer07/GuessVibe-Server/internals/grpc_client"
@@ -37,6 +39,24 @@ func main() {
 	llmClient := grpcclient.NewLLMClient("localhost:50051")
 
 	client := Connect()
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{
+			echo.GET,
+			echo.POST,
+			echo.PUT,
+			echo.DELETE,
+			echo.PATCH,
+			echo.OPTIONS,
+		},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+		},
+	}))
 
 	hub := ws.NewHub()
 	go hub.Run()

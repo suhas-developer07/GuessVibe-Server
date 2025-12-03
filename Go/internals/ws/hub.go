@@ -25,7 +25,7 @@ func (h *Hub) Run() {
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
-				close(client.Send)
+				close(client.Send) // ✔ This is the ONLY place closing Send
 			}
 
 		case message := <-h.Broadcast:

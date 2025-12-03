@@ -8,55 +8,54 @@ import (
 )
 
 type Client struct {
-	Hub       *Hub
-	Conn      *websocket.Conn
-	Send      chan []byte
-	LLM       *grpcclient.LLMClient
-	SessionID string
-	UserID    string
+    Hub       *Hub
+    Conn      *websocket.Conn
+    Send      chan []byte
+    LLM       *grpcclient.LLMClient
+    SessionID string
+    UserID    string
+    closed    bool // prevent double unregister
 }
 
 // ReadPump handles incoming messages from frontend
 func (c *Client) ReadPump() {
-	defer func() {
-		c.Hub.Unregister <- c
-		c.Conn.Close()
-	}()
+    defer CloseClient(c)
 
-	for {
-		_, msg, err := c.Conn.ReadMessage()
-		if err != nil {
-			log.Println("read error:", err)
-			break
-		}
+    for {
+        _, msg, err := c.Conn.ReadMessage()
+        if err != nil {
+            log.Println("read error:", err)
+            break
+        }
 
-		// send message to your WS handler logic:
-		HandleIncomingMessage(c, msg)
-	}
+        HandleIncomingMessage(c, msg)
+    }
 }
+
 
 // WritePump handles outgoing messages to frontend
 func (c *Client) WritePump() {
-	defer c.Conn.Close()
+    defer c.Conn.Close()
 
-	for msg := range c.Send {
-		err := c.Conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			log.Println("write error:", err)
-			return
-		}
-	}
+    for msg := range c.Send {
+        if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+            log.Println("write error:", err)
+            return
+        }
+    }
 }
 
 func CloseClient(c *Client) {
-	// Unregister client from Hub
-	c.Hub.Unregister <- c
+    if c.closed {
+        return
+    }
+    c.closed = true
 
-	// Close WS connection
-	_ = c.Conn.Close()
+    // Ask Hub to unregister (Hub closes channel)
+    c.Hub.Unregister <- c
 
-	// Close send channel to stop WritePump
-	close(c.Send)
+    // Close WebSocket connection
+    _ = c.Conn.Close()
 
-	log.Println("Client disconnected cleanly after final guess")
+    log.Println("Client disconnected cleanly after final guess")
 }
