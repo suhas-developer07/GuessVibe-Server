@@ -47,3 +47,16 @@ func (c *Client) WritePump() {
 		}
 	}
 }
+
+func CloseClient(c *Client) {
+	// Unregister client from Hub
+	c.Hub.Unregister <- c
+
+	// Close WS connection
+	_ = c.Conn.Close()
+
+	// Close send channel to stop WritePump
+	close(c.Send)
+
+	log.Println("Client disconnected cleanly after final guess")
+}

@@ -134,9 +134,13 @@ func HandleAnswer(c *Client, msg wsmodels.ClientMessage) {
 
 		// Send guess to frontend
 		SendFinalGuess(c, guessResp)
+		SendSessionEnd(c)
 
 		// Close session in Redis
 		_ = sessionService.Repo.DeleteSession(ctx, state.SessionID)
+
+		CloseClient(c)
+
 		return
 	}
 
@@ -167,4 +171,13 @@ func HandleAnswer(c *Client, msg wsmodels.ClientMessage) {
 
 	// Send next question
 	SendQuestion(c, state.SessionID, nextQuestion, state.QuestionCount)
+}
+
+func SendSessionEnd(c *Client) {
+	resp := wsmodels.ServerMessage{
+		Type: "session_end",
+	}
+
+	b, _ := json.Marshal(resp)
+	c.Send <- b
 }
