@@ -40,6 +40,7 @@ func (c *LLMClient) GenerateFirstQuestion(state *pb.SessionState) (string, error
 	ctx, cancel := c.ctx()
 	defer cancel()
 
+	log.Println("Grpc is working fine")
 	resp, err := c.Client.GenerateFirstQuestion(ctx, state)
 	if err != nil {
 		return "", err
