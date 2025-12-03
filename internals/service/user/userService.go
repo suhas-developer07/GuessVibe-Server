@@ -19,31 +19,27 @@ func NewUserService(userRepo models.UserRepo) *UserService {
 		validate: v,
 	}
 }
-func (s *UserService) RegisterUser(req models.User) (int64, error) {
-	err := s.validate.Struct(req)
-	if err != nil {
-		return 0, fmt.Errorf("validation error: %w", err)
+func (s *UserService) RegisterUser(req models.User) (string, error) {
+	if err := s.validate.Struct(req); err != nil {
+		return "", fmt.Errorf("validation error: %w", err)
 	}
+
 	id, err := s.userRepo.RegisterUser(req)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-func (s *UserService) LoginUser(Email, password string) (string, error) {
-	token, err := s.userRepo.LoginUser(Email, password)
 	if err != nil {
 		return "", err
 	}
-	return token, nil
+	return id, nil
 }
-func (s *UserService) LogoutUser(UserID, token string) error {
-	if UserID == "" {
+
+func (s *UserService) LoginUser(email, password string) (string, error) {
+	return s.userRepo.LoginUser(email, password)
+}
+
+func (s *UserService) LogoutUser(userID, token string) error {
+	if userID == "" {
 		return fmt.Errorf("invalid user id")
 	}
-	err := s.userRepo.LogoutUser(UserID, "")
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return s.userRepo.LogoutUser(userID, token)
 }
+                         

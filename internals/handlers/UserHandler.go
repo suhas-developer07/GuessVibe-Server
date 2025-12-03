@@ -14,23 +14,26 @@ type UserHandler struct {
 
 func (h *UserHandler) UserRegisterHandler(c echo.Context) error {
 	var req models.User
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(400, "Invalid request")
 	}
+
 	id, err := h.UserServices.RegisterUser(req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		return c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Status: "error",
 			Error:  "Failed to register user: " + err.Error(),
 		})
 	}
+
 	return c.JSON(http.StatusOK, models.SuccessResponse{
 		Status:  "success",
 		Message: "User registered successfully",
-		Data:    map[string]int64{"user_id": id},
+		Data:    map[string]string{"user_id": id},
 	})
-
 }
+
 func (h *UserHandler) UserLoginHandler(c echo.Context) error {
 	var req models.UserLogin
 	if err := c.Bind(&req); err != nil {
@@ -44,7 +47,7 @@ func (h *UserHandler) UserLoginHandler(c echo.Context) error {
 		})
 	}
 	return c.JSON(http.StatusOK, models.SuccessResponse{
-		Status:  "sucess",
+		Status:  "success",
 		Message: "User LoggedIn Sucessfully",
 		Data:    map[string]string{"token": token},
 	})
@@ -60,7 +63,7 @@ func (h *UserHandler) LogoutUserHandler(c echo.Context) error {
 			Error:  "Failed to logout user: " + err.Error(),
 		})
 	}
-	err= h.UserServices.LogoutUser(Userlogout.UserID,"")
+	err = h.UserServices.LogoutUser(Userlogout.UserID, "")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Status: "error",

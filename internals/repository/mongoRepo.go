@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	models "github.com/suhas-developer07/GuessVibe-Server/internals/models/User_model"
@@ -14,33 +15,61 @@ import (
 
 // MongoRepo struct definition
 type MongoRepo struct {
-	db  *mongo.Database
-	ctx context.Context
+	Db  *mongo.Database
+	Ctx context.Context
 }
 
-func (r *MongoRepo) RegisterUser(user models.User) (int64, error) {
-	collection := r.db.Collection("users")
-	Hashedpassword, err := utils.Hashedpassword(user.Password)
+// func (r *MongoRepo) RegisterUser(user models.User) (string, error) {
+// 	collection := r.Db.Collection("users")
+// 	Hashedpassword, err := utils.Hashedpassword(user.Password)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	objectID := primitive.NewObjectID()
+// 	user.ID = objectID.Hex()
+// 	user.UserID = user.ID
+// 	user.Password = Hashedpassword
+
+//		result, err := collection.InsertOne(r.Ctx, user)
+//		if err != nil {
+//			return "", err
+//		}
+//		insertedID := result.InsertedID.(string)
+//		return insertedID, nil
+//	}
+func (r *MongoRepo) RegisterUser(user models.User) (string, error) {
+	collection := r.Db.Collection("users")
+	count, err := collection.CountDocuments(r.Ctx, bson.M{"email": user.Email})
 	if err != nil {
-		return 0, err
+		return "", err
+	}
+	if count > 0 {
+		return "", errors.New("user already exists")
+	}
+	hashedPassword, err := utils.Hashedpassword(user.Password)
+	if err != nil {
+		return "", err
 	}
 
 	objectID := primitive.NewObjectID()
 	user.ID = objectID.Hex()
 	user.UserID = user.ID
-	user.Password = Hashedpassword
+	user.Password = hashedPassword
 
-	result, err := collection.InsertOne(r.ctx, user)
+	_, err = collection.InsertOne(r.Ctx, user)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	insertedID := result.InsertedID.(int64)
-	return insertedID, nil
+
+	// No panic. No type cast. Already the correct ID.
+	return user.ID, nil
 }
+
 func (r *MongoRepo) LoginUser(Email, password string) (string, error) {
-	collection := r.db.Collection("users")
+	collection := r.Db.Collection("users")
 	var user models.User
-	err := collection.FindOne(r.ctx, map[string]interface{}{"email": Email}).Decode(&user)
+	err := collection.FindOne(r.Ctx, map[string]interface{}{"email": Email}).Decode(&user)
 	if err != nil {
 		return "", err
 	}
@@ -52,11 +81,11 @@ func (r *MongoRepo) LoginUser(Email, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	collection.UpdateOne(r.ctx, bson.M{"email": Email}, bson.M{"$set": bson.M{"token": token}})
+	collection.UpdateOne(r.Ctx, bson.M{"email": Email}, bson.M{"$set": bson.M{"token": token}})
 	return token, nil
 }
 func (r *MongoRepo) LogoutUser(UserID, token string) error {
-	collection := r.db.Collection("users")
+	collection := r.Db.Collection("users")
 	updateAt, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 	updateData := bson.M{
 		"$set": bson.M{
@@ -64,7 +93,7 @@ func (r *MongoRepo) LogoutUser(UserID, token string) error {
 			"updatedat": updateAt,
 		},
 	}
-	_, err := collection.UpdateOne(r.ctx, bson.M{"userid": UserID}, updateData)
+	_, err := collection.UpdateOne(r.Ctx, bson.M{"userid": UserID}, updateData)
 	if err != nil {
 		return err
 	}

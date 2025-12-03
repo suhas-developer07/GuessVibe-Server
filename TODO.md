@@ -1,0 +1,5 @@
+- [x] Modify main.go to store the MongoDB client and pass it to LoadHTTPRoutes
+- [x] Update LoadHTTPRoutes function signature to accept *mongo.Client
+- [x] Add necessary imports to http.go
+- [x] Initialize repository, service, and handler in LoadHTTPRoutes
+- [x] Add POST routes for /register, /login, /logout

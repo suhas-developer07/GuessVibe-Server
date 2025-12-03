@@ -15,10 +15,7 @@ import (
 func Connect() *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Println("Warning unable to find .env file")
-	}
+
 	MongoDb := os.Getenv("MONGODB_URI")
 	if MongoDb == "" {
 		log.Fatal("MONGODB_URI not found in environment variables")

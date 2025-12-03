@@ -2,7 +2,8 @@ package user_model
 
 type User struct {
 	ID       string `json:"_id" bsom:"_id"`
-	UserID   string `json:"userid" bson:"userid" validate:"required,min=3,max=30"`
+	Name     string `json:"name" bson:"name" validate:"required"`
+	UserID   string `json:"userid" bson:"userid"`
 	Email    string `json:"email" bson:"email" validate:"required,email"`
 	Password string `json:"password" bson:"password" validate:"required,min=8"`
 	Token    string `json:"token" bson:"token"`
@@ -13,7 +14,7 @@ type UserLogin struct {
 }
 
 type UserRepo interface {
-	RegisterUser(User User) (int64, error)
+	RegisterUser(User User) (string, error)
 	LoginUser(Email, password string) (string, error)
 	LogoutUser(userID, token string) error
 }
