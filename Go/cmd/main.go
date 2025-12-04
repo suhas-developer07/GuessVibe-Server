@@ -28,9 +28,9 @@ func main() {
 	if Redis_url == "" {
 		log.Fatal("Redis_url not found in environment variables")
 	}
-	rbd := redis.NewClient(&redis.Options{
-		Addr: Redis_url,
-	})
+	
+	opt,_ := redis.ParseURL(Redis_url)
+	rbd := redis.NewClient(opt)
 
 	repo := session.NewRedisRepo(rbd)
 	svc := session.NewService(repo)
@@ -71,7 +71,11 @@ func main() {
 	router.LoadHTTPRoutes(e, client)
 	router.LoadWSRoutes(e, hub, llmClient)
 
-	if err := e.Start(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := e.Start(":"+port); err != nil {
 		e.Logger.Fatal("Shutting down the server")
 	}
 }

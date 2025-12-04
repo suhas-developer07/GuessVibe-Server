@@ -1,6 +1,6 @@
 module github.com/suhas-developer07/GuessVibe-Server
 
-go 1.24.10
+go 1.24.0
 
 require (
 	github.com/go-playground/validator/v10 v10.28.0
