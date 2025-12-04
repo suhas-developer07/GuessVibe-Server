@@ -42,6 +42,9 @@ func OpenCollection(collectionName string, client *mongo.Client) *mongo.Collecti
 		log.Println("Warning: unable to find .env file")
 	}
 	databaseName := os.Getenv("DATABASE_NAME")
+	if databaseName == ""{
+		log.Fatal("DATABASE_NAME not found in environment variables")
+	}
 	fmt.Println("DATABASE_NAME: ", databaseName)
 	collection := client.Database(databaseName).Collection(collectionName)
 	if collection == nil {

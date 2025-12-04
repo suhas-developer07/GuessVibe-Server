@@ -6,7 +6,6 @@ import (
 	"log"
 
 	pb "github.com/suhas-developer07/GuessVibe-Server/generated/proto"
-	//models "github.com/suhas-developer07/GuessVibe-Server/internals/models/RedisSession_model"
 	wsmodels "github.com/suhas-developer07/GuessVibe-Server/internals/models/Websocket_model"
 	"github.com/suhas-developer07/GuessVibe-Server/internals/session"
 )
@@ -177,6 +176,8 @@ func SendSessionEnd(c *Client) {
 	resp := wsmodels.ServerMessage{
 		Type: "session_end",
 	}
+
+	log.Println("Sending session end message to client")
 
 	b, _ := json.Marshal(resp)
 	c.Send <- b

@@ -2,6 +2,7 @@ import grpc
 from concurrent import futures
 import llm_pb2_grpc as pb_grpc
 from app.service import LLMServiceHandler
+import os
 
 
 class LLMServer(pb_grpc.LLMServiceServicer):
@@ -19,9 +20,10 @@ class LLMServer(pb_grpc.LLMServiceServicer):
         return self.service.GenerateFinalGuess(request)
 
 def serve():
+    port = os.getenv("PORT", "50051") 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb_grpc.add_LLMServiceServicer_to_server(LLMServer(), server)
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{port}")
     print("🚀 Python LLM gRPC running on 50051...")
     server.start()
     server.wait_for_termination()
