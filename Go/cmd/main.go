@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"
 	grpcclient "github.com/suhas-developer07/GuessVibe-Server/internals/grpc_client"
 	"github.com/suhas-developer07/GuessVibe-Server/internals/router"
@@ -17,26 +18,32 @@ import (
 func main() {
 	e := echo.New()
 
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Println("Warning unable to find .env file")
+	}
+
+	Redis_url := os.Getenv("REDIS_URL")
+	if Redis_url == "" {
+		log.Fatal("Redis_url not found in environment variables")
+	}
 	rbd := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: Redis_url,
 	})
 
 	repo := session.NewRedisRepo(rbd)
 	svc := session.NewService(repo)
 	ws.InjectSessionService(svc)
 
-	err := godotenv.Load(".env")
-	MongoDb := os.Getenv("MONGODB_URI")
-	log.Println("MONGODB_URI: ", MongoDb)
-	if MongoDb == "" {
-		log.Fatal("MONGODB_URI not found in environment variables")
+	llmHost := os.Getenv("LLM_HOST") // e.g. "python-service.up.railway.internal"
+	llmPort := os.Getenv("LLM_PORT")
+
+	if llmHost == "" || llmPort == "" {
+		log.Fatal("LLM_HOST or LLM_PORT not found in environment variables")
 	}
 
-	if err != nil {
-		log.Println("Warning unable to find .env file")
-	}
-
-	llmClient := grpcclient.NewLLMClient("localhost:50051")
+	llmClient := grpcclient.NewLLMClient(fmt.Sprintf("%s:%s",llmHost,llmPort))
 
 	client := Connect()
 

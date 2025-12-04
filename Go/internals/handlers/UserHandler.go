@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -21,6 +22,7 @@ func (h *UserHandler) UserRegisterHandler(c echo.Context) error {
 
 	id, err := h.UserServices.RegisterUser(req)
 	if err != nil {
+		log.Println("Error registering user:", err)
 		return c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Status: "error",
 			Error:  "Failed to register user: " + err.Error(),
