@@ -20,10 +20,10 @@ class LLMServer(pb_grpc.LLMServiceServicer):
         return self.service.GenerateFinalGuess(request)
 
 def serve():
-    port = os.getenv("PORT", "50051") 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb_grpc.add_LLMServiceServicer_to_server(LLMServer(), server)
-    server.add_insecure_port(f"[::]:{port}")
+    server.add_insecure_port("0.0.0.0:50051")
     print("🚀 Python LLM gRPC running on 50051...")
     server.start()
     server.wait_for_termination()
+
